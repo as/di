@@ -135,10 +135,10 @@ func main() {
 
 		cnt := 25
 		RPs := []Node{
-			node("W21", image.Pt(100, 0)),
-			//node("W22", image.Pt(200, 0)),
-			//node("W23", image.Pt(300, 0)),
-			//node("W24", image.Pt(400, 0)),
+			node("X21", image.Pt(100, 0)),
+			node("X22", image.Pt(200, 0)),
+			node("X23", image.Pt(300, 0)),
+			node("X24", image.Pt(400, 0)),
 		}
 		nest1 := &Nest{
 			[]Node{
