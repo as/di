@@ -4,6 +4,7 @@ import (
 	"image"
 
 	"github.com/as/frame"
+	"github.com/as/frame/font"
 	"github.com/as/frame/win"
 	"golang.org/x/exp/shiny/screen"
 	"golang.org/x/image/font/gofont/gomono"
@@ -17,8 +18,7 @@ type aux struct {
 }
 
 func NewText(a *aux, s string, dy int, sp, size, pad image.Point) *Text {
-	cols := frame.Acme
-	w := win.New(a.scr, frame.NewTTF(gomono.TTF, dy), a.events, sp, size, pad, cols)
+	w := win.New(a.scr, font.NewTTF(gomono.TTF, dy), a.events, sp, size, pad, frame.Mono)
 	w.Insert([]byte(s), 0)
 	w.Upload()
 	return &Text{sp: sp, s: w}
@@ -34,10 +34,13 @@ func (t *Text) Handle(e interface{}) {
 		pt := image.Pt(int(e.X), int(e.Y)).Sub(t.s.Loc().Min)
 		if e.Direction == 1 && e.Button == 1 {
 			q := t.s.IndexOf(pt)
-			t.s.Select(q,q)
+			t.s.Select(q, q)
 		}
 	case key.Event:
-		if e.Direction == 2{
+		if e.Direction == 2 {
+			return
+		}
+		if e.Rune == -1 {
 			return
 		}
 		q0, q1 := t.s.Dot()
@@ -48,9 +51,13 @@ func (t *Text) Handle(e interface{}) {
 			t.s.Delete(q0, q1)
 		}
 		if e.Rune != '\x08' {
-			q0 += t.s.Insert([]byte{byte(e.Rune)},q0)
-			t.s.Select(q0,q0)
+			q0 = t.s.Insert([]byte{byte(e.Rune)}, q0)
+			//t.s.Select(q1, q1)
 		}
-		t.s.Refresh()
+		//t.s.Refresh()
 	}
+}
+
+func (t *Text) Dirty() bool {
+	return t.s.Dirty()
 }

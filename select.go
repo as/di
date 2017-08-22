@@ -49,7 +49,7 @@ func (n *Nest) Kid() []Node {
 }
 
 func (n *Circ) Kid() []Node { return []Node{n.Node} }
-func (n *Text) Kid() []Node { return nil}
+func (n *Text) Kid() []Node { return nil }
 func (n *Link) Kid() []Node { panic("!") }
 func (n *Dot) Kid() []Node  { panic("!") }
 func (n *Line) Kid() []Node { return nil }

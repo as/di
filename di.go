@@ -3,12 +3,12 @@ package main
 import (
 	//	"github.com/as/clip"
 	//"golang.org/x/image/font"
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
-	"fmt"
 	"sync"
-	
+
 	"log"
 
 	"golang.org/x/exp/shiny/driver"
@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	winSize = image.Pt(1024, 768)
+	winSize = image.Pt(800, 600)
 	wg      sync.WaitGroup
 )
 var (
@@ -79,7 +79,7 @@ func attachline(n Node, pt0, pt1 image.Point) {
 	}
 }
 
-var boxr = image.Rect(0, 0, 50, 50)
+var boxr = image.Rect(0, 0, 100, 50)
 var a *aux
 
 func node(name string, sp image.Point) *Rect {
@@ -87,32 +87,38 @@ func node(name string, sp image.Point) *Rect {
 	return &Rect{
 		bg:        Cyan,
 		Rectangle: r,
-		Node:      NewText(a, name, 15, r.Min.Add(image.Pt(0, r.Dy()+2)), image.Pt(r.Dx(), 25), image.Pt(2, 2)),
+		Node:      NewText(a, name, 11, r.Min, image.Pt(r.Dx(), 25), image.Pt(2, 2)),
 	}
 }
 
 func nodeCPU(name string, sp image.Point) Node {
-	im, err := NewImageScaled(`cpu.png`, 
-		image.Rectangle{sp, sp.Add(image.Pt(55,55))})
+	im, err := NewImageScaled(`cpu.png`, boxr)
 	if err != nil {
 		log.Printf("nodeCPU: %s\n", err)
 		return nil
 	}
 	r := im.Rect.Bounds()
-	im.Rect.Node = NewText(a, name, 15, r.Min.Add(image.Pt(0, r.Dy()+2)), image.Pt(r.Dx(), 25), image.Pt(2, 2))
+	im.Rect.Node = NewText(a, name, 11, r.Min.Add(image.Pt(0, r.Dy()-r.Dy()/3)), image.Pt(r.Dx(), r.Dy()/3), image.Pt(2, 2))
 	return im
 }
 
-func root(sp image.Point) Node{
-	im, err := NewImageEX(`root.png`, 
-		image.Rectangle{sp, sp.Add(image.Pt(320,240))})
-	if err != nil {
-		log.Printf("nodeCPU: %s\n", err)
-		return nil
-	}
+func root(sp image.Point) Node {
+	//	im, err := NewImageEX(`root.png`,
+	//		image.Rectangle{sp, sp.Add(image.Pt(320, 240))})
+	//	if err != nil {
+	//		log.Printf("nodeCPU: %s\n", err)
+	//		return nil
+	//	}
 	//r := im.Rect.Bounds()
-	//im.Rect.Node = NewText(a, "root", 15, r.Min.Add(image.Pt(0, r.Dy()+2)), image.Pt(r.Dx(), 25), image.Pt(2, 2))
-	return im
+	//im.Rect.Node = NewText(a, "root", 11, r.Min.Add(image.Pt(0, -r.Dy()/3)), image.Pt(r.Dx(), 25), image.Pt(2, 2))
+	return node("root", sp)
+}
+
+func drawControlPts(dst draw.Image, r image.Rectangle, src image.Image, sp image.Point) {
+	drawAnts(dst, r.Add(image.Pt(1, 1)), Gray, sp, 2, 3)
+	controlPts(dst, r.Add(image.Pt(1, 1)), image.Rect(0, 0, 5, 5), Gray, sp)
+	drawAnts(dst, r, src, sp, 2, 3)
+	controlPts(dst, r, image.Rect(0, 0, 5, 5), src, image.ZP)
 }
 
 func main() {
@@ -123,76 +129,96 @@ func main() {
 		//		repaint := true
 		buf, _ := src.NewBuffer(winSize)
 		draw.Draw(buf.RGBA(), buf.Bounds(), Black, image.ZP, draw.Src)
-		rt := root(image.Pt(100,100)) 
-		dirty := true
 		a = &aux{src, win}
+		rt := root(image.Pt(100, 100))
+		dirty := true
+
 		cnt := 25
 		RPs := []Node{
-			nodeCPU("W21", image.Pt(100, 0)),
-			nodeCPU("W22", image.Pt(200, 0)),
-			nodeCPU("W23", image.Pt(300, 0)),
-			nodeCPU("W24", image.Pt(400, 0)),
+			node("W21", image.Pt(100, 0)),
+			//node("W22", image.Pt(200, 0)),
+			//node("W23", image.Pt(300, 0)),
+			//node("W24", image.Pt(400, 0)),
 		}
 		nest1 := &Nest{
 			[]Node{
-				&Circ{bg: Black, a: 100, b: 100, c: image.Pt(50, 50)},
-				&Rect{bg: Yellow, Rectangle: image.Rect(0, 0, 64, 64)},
-				&Line{bg: Yellow, p0: image.Pt(0, 50), p1: image.Pt(100, 49)},
+			//	&Circ{bg: Black, a: 100, b: 100, c: image.Pt(50, 50)},
+			//	&Rect{bg: Yellow, Rectangle: image.Rect(0, 0, 64, 64)},
+			//	&Line{bg: Yellow, p0: image.Pt(0, 50), p1: image.Pt(100, 49)},
 			},
 		}
 		nest1.m = append(nest1.m, rt)
 		nest1.m = append(nest1.m, RPs...)
-
+		var act Node
+		stext := NewText(a, fmt.Sprintf("active: %s", act), 12, image.Pt(0, winSize.Y-25), image.Pt(winSize.X, 25), image.Pt(2, 2))
+		status := &Rect{
+			bg:   Cyan,
+			Node: stext,
+		}
+		updatestatus := func() {
+			stext.s.Delete(0, stext.s.Len())
+			stext.s.Insert([]byte(fmt.Sprintf("active: %s", act)), 0)
+			dirty = true
+		}
 		di := &Di{
 			dx: 800, dy: 600, bg: Black,
 			Node: &Nest{[]Node{
-				&Rect{bg: EggShell, Rectangle: image.Rect(0, 0, 1600, 1200),
+				&Rect{bg: EggShell, Rectangle: image.Rect(0, 0, 800, 600),
 					Node: nest1,
 				},
-				//&Rect{bg: Blue,Rectangle: image.Rect(150, 100, 250, 200)},
+				status,
 			},
 			},
 		}
 		links := make(map[Node][]Node)
 		links[rt] = RPs
 		var lpt0, lpt1 image.Point
-		act := Node(di)
-		addplat := func(sp image.Point){
-			plat := nodeCPU(fmt.Sprintf("W%02d", cnt), sp)
+		act = Node(di)
+		addplat := func(sp image.Point) {
+			plat := node(fmt.Sprintf("W%02d", cnt), sp)
 			nest1.m = append(nest1.m, plat)
 			cnt++
 			links[act] = append(links[act], plat)
 		}
-		var s0,s1 image.Point
-		sr := image.NewUniform(color.RGBA{255,32,32,255})
+		var s0, s1 image.Point
 		for {
 			switch e := win.NextEvent().(type) {
 			case key.Event:
-				Handle(act, e);
-				if dirty{
+				Handle(act, e)
+				if t, ok := act.(interface {
+					Dirty() bool
+				}); ok {
+					if t.Dirty() {
+						dirty = true
+					}
+				}
+				if dirty {
 					win.Send(paint.Event{})
 				}
 			case mouse.Event:
 				parsemouse(e)
-				switch{
+				switch {
 				case M.bt == 1<<3 || M.down == 1<<3:
-					if M.dir == 1{
+					if M.dir == 1 {
 						s0 = M.pt
-					} else if M.dir == 2{
-						s0,s1 = image.ZP, image.ZP
-						
+					} else if M.dir == 2 {
+						s0, s1 = image.ZP, image.ZP
+						dirty = true
 					} else {
 						s1 = M.pt
+						stext.s.Insert([]byte(fmt.Sprintf("Select: %s\n", image.Rectangle{s0, s1}.Canon())), 0)
 					}
-					dirty=true
+					dirty = true
 				case M.bt == 2 && M.dir == 1:
 					addplat(M.pt)
-					dirty=true
+					dirty = true
 				case M.bt == 1 || M.down == 2:
 					switch M.dir {
 					case 1:
 						act = Select(M.pt, di)
 						lpt0 = M.pt
+						updatestatus()
+						dirty = true
 					case 2:
 						//attachline(nest1, lpt0, lpt1)
 					case 0:
@@ -201,37 +227,44 @@ func main() {
 							d := lpt1.Sub(lpt0)
 							Shift(act, d)
 							lpt0 = lpt1
+							updatestatus()
 						}
 					}
-					if act != nil && M.pt.In(act.Bounds()){
+					if act != nil && M.pt.In(act.Bounds()) {
 						Handle(act, e)
 					}
-					dirty=true
+					dirty = true
 				}
-				if dirty{
+				if dirty {
 					win.Send(paint.Event{})
 				}
 				//repaint = true
 			case size.Event:
 			case paint.Event:
+				if !dirty {
+					continue
+				}
 				di.Draw(buf.RGBA())
 				if act != nil {
 					act.Draw(buf.RGBA())
+					drawControlPts(buf.RGBA(), act.Bounds(), image.White, image.ZP)
 				}
 				for k, v := range links {
-					p0 := Pad{B, k.Bounds().Min.Add(image.Pt(k.Bounds().Dx()/2, 0))}
+					p0 := Pad{B, k.Bounds().Min.Add(image.Pt(k.Bounds().Dx()/2, -3))} //k.Bounds().Dy()
 					for _, v := range v {
-						p1 := Pad{B, v.Bounds().Min.Add(image.Pt(v.Bounds().Dx()/2, 0))}
-						p := Connect2(v.Bounds(), p0, p1)
-						polyline(buf.RGBA(), p, Mauve, image.ZP, 3)
+						p1 := Pad{T, v.Bounds().Min.Add(image.Pt(k.Bounds().Dx()/2, k.Bounds().Dy()+3))}
+						pol := Connect2(k.Bounds(), v.Bounds(), p0, p1)
+						polyline(buf.RGBA(), pol, White, image.ZP, 2)
+						polyline(buf.RGBA(), pol.Add(image.Pt(1, 1)), Mauve, image.ZP, 2)
 					}
 				}
-				drawBorder(buf.RGBA(), image.Rect(s0.X,s0.Y,s1.X,s1.Y), sr, image.ZP, 4)
-			
+				sr := image.Rectangle{s0, s1}.Canon()
+				drawControlPts(buf.RGBA(), sr, image.White, image.ZP)
+
 				win.Upload(image.ZP, buf, buf.Bounds())
 				wg.Wait()
 				win.Publish()
-				dirty=false
+				dirty = false
 			case lifecycle.Event:
 				if e.To == lifecycle.StageDead {
 					return
@@ -245,6 +278,15 @@ func main() {
 			}
 		}
 	})
+}
+
+func drawAnts(dst draw.Image, r image.Rectangle, src image.Image, sp image.Point, thick int, stride int) {
+	s0 := r.Min
+	s1 := r.Max
+	ants(dst, image.Pt(s0.X, s0.Y), image.Pt(s1.X, s0.Y), src, image.ZP, thick, stride)
+	ants(dst, image.Pt(s1.X, s0.Y), image.Pt(s1.X, s1.Y), src, image.ZP, thick, stride)
+	ants(dst, image.Pt(s1.X, s1.Y), image.Pt(s0.X, s1.Y), src, image.ZP, thick, stride)
+	ants(dst, image.Pt(s0.X, s1.Y), image.Pt(s0.X, s0.Y), src, image.ZP, thick, stride)
 }
 func drawBorder(dst draw.Image, r image.Rectangle, src image.Image, sp image.Point, thick int) {
 	draw.Draw(dst, image.Rect(r.Min.X, r.Min.Y, r.Max.X, r.Min.Y+thick), src, sp, draw.Src)

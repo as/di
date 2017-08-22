@@ -9,6 +9,19 @@ type Pad struct {
 
 type Polygon interface {
 	Points() []image.Point
+	Add(...image.Point) Polygon
+}
+
+func (p poly) Add(qq ...image.Point) Polygon {
+	pp := p.Points()
+	rr := make(poly, 0, len(pp))
+	if len(qq) == 0 {
+		return append(poly{})
+	}
+	for i := range pp {
+		rr = append(rr, p[i].Add(qq[i%(len(qq))]))
+	}
+	return rr
 }
 
 func (p poly) Points() []image.Point {
@@ -17,31 +30,33 @@ func (p poly) Points() []image.Point {
 
 type poly []image.Point
 
-const Smacks =  20
-const Offset =  4
+const Smacks = 20
+const Offset = 4
 const (
-	T = 3
-	R = 1
 	L = 0
+	R = 1
 	B = 2
+	T = 3
 )
 
 var dirs = [4][4]int{
-	{T, B, L, R},
-	{B, T, R, L},
-	{R, L, T, B},
-	{L, R, B, T},
+	{T, B, L, R}, // Left
+	{B, T, R, L}, // Right
+	{R, L, T, B}, // Bottom
+	{L, R, B, T}, // Top
 }
-func Connect2(r image.Rectangle, out, in Pad) Polygon {
+
+func Connect2(r0, r1 image.Rectangle, out, in Pad) Polygon {
 	in.Point = transform(out, in.Point)
-	p1 := connect(out, in)
-	p := make(poly, len(p1.Points()))
-	T := transform
-	p = correct(image.Rectangle{T(out, r.Min),T(out, r.Max)}, p).Points()
-	for i, v := range p1.Points() {
+	pts := connect(out, in)
+	p := pts.Points()
+	for i, v := range p {
 		p[i] = invert(out, v)
 	}
-	return p
+	pts = correct(r0, poly(p))
+	pts = correct(r1, pts)
+	pts = correct(r0, pts)
+	return pts
 }
 
 func Connect(out, in Pad) Polygon {
@@ -58,10 +73,13 @@ func connect(out, in Pad) Polygon {
 	case L:
 		if in.Y > 0 {
 			if in.X > 0 {
+				println("Left Shape3P")
 				return Shape3P(in.Point)
 			}
+			println("Left Shape5B")
 			return Shape5PB(in.Point, -1)
 		}
+		println("Left Shape5B (TODO)")
 		return Shape5PB(in.Point, -1)
 		// TODO
 	case R:
@@ -81,7 +99,7 @@ func connect(out, in Pad) Polygon {
 		if in.X < -Smacks || in.X > Smacks {
 			return Shape4PU(in.Point)
 		}
-		return Shape6P(in.Point, 1)	// TODO
+		return Shape6P(in.Point, 1) // TODO
 	}
 	panic("connect: never happens")
 }
@@ -112,18 +130,19 @@ func invert(o Pad, p image.Point) image.Point {
 	}
 	panic("invert: never happens")
 }
-func correct(r image.Rectangle, p Polygon) Polygon{
+func intersect(r image.Rectangle, p0, p1 image.Point) bool {
+	return code(r, p0)&code(r, p1) == 0
+}
+func correct(r image.Rectangle, p Polygon) Polygon {
 	pts := p.Points()
-	if len(pts) < 4{
-		return p
-	}
-	for i := 2; i+1<len(pts); i++ {
+	for i := 2; i+1 < len(pts); i++ {
 		a, b, c, d := pts[i-2], pts[i-1], pts[i], pts[i+1]
-		if intersect(r, b, c){
-			if b.X == c.X{
-				b.X, c.X = adjust(r.Min.X, r.Max.X, a.X,b.X,c.X,d.X)
+		if intersect(r, b, c) {
+
+			if b.X == c.X {
+				b.X, c.X = adjust(r.Min.X, r.Max.X, a.X, b.X, c.X, d.X)
 			} else {
-				b.Y, c.Y = adjust(r.Min.Y, r.Max.Y, a.Y,b.Y,c.Y,d.Y)
+				b.Y, c.Y = adjust(r.Min.Y, r.Max.Y, a.Y, b.Y, c.Y, d.Y)
 			}
 		}
 		pts[i-1], pts[i] = b, c
@@ -131,35 +150,34 @@ func correct(r image.Rectangle, p Polygon) Polygon{
 	return poly(pts)
 }
 
-func eqsign(a,b,c,d int) bool{
+func eqsign(a, b, c, d int) bool {
 	return (b-a)*(d-c) > 0
 }
-func adjust(min, max, a, b, c, d int) (int, int){
-	if eqsign(a,b,c,d){
-		if b < a{
-			return min-Offset+2,min-Offset+2
+func adjust(min, max, a, b, c, d int) (int, int) {
+	if eqsign(a, b, c, d) {
+		if b < a {
+			return min - Offset + 2, min - Offset + 2
 		}
-		return max+Offset-3,max+Offset-3
+		return max + Offset - 3, max + Offset - 3
 	}
-	if c < d{
-		return min-Offset+2, min-Offset+2
+	if c < d {
+		return min - Offset + 2, min - Offset + 2
 	}
-	return max+Offset-3, max+Offset-3
+	return max + Offset - 3, max + Offset - 3
 }
-
-func intersect(r image.Rectangle, p0, p1 image.Point) bool{
-	return code(r, p0) & code(r, p1) == 0
+func in(r image.Rectangle, p0, p1 image.Point) bool {
+	return code(r, p0)&code(r, p1) == 0
 }
-func code(r image.Rectangle, p image.Point) int{
+func code(r image.Rectangle, p image.Point) int {
 	c := 0
-	if p.X < r.Min.X{
-		c=1
-	} else if  p.X >= r.Max.X{
-		c=2
+	if p.X < r.Min.X {
+		c = 1
+	} else if p.X >= r.Max.X {
+		c = 2
 	}
 	if p.Y < r.Min.Y {
 		c |= 4
-	} else if p.Y >= r.Max.Y{
+	} else if p.Y >= r.Max.Y {
 		c |= 8
 	}
 	return c
@@ -214,13 +232,17 @@ func Shape6P(sp image.Point, s int) Polygon {
 	p := make(poly, 6)
 	m := sp.X / 2
 	p[1] = image.Pt(0, Offset)
-	if m > Smacks{
+	if m > Smacks {
 		p[2] = image.Pt(m, Offset)
 	} else {
 		s2 := 1
-		if sp.Y < 0{ s2 = -s2}
-		if sp.X > 0{ s2 = -s2}
-		p[2] = image.Pt(s2*Smacks, Offset) 
+		if sp.Y < 0 {
+			s2 = -s2
+		}
+		if sp.X > 0 {
+			s2 = -s2
+		}
+		p[2] = image.Pt(s2*Smacks, Offset)
 	}
 	p[3] = image.Pt(p[2].X, sp.Y+s*Offset)
 	p[4] = image.Pt(sp.X, p[3].Y)

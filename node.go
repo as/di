@@ -6,6 +6,7 @@ import (
 	"image/draw"
 )
 import "github.com/as/frame/win"
+
 type Node interface {
 	Bounds() image.Rectangle
 	Draw(dst draw.Image)
@@ -139,40 +140,40 @@ func (n *Nest) Move(sp image.Point) {
 	}
 }
 
-func Shift(n Node, dp image.Point){
-	if n == nil{
+func Shift(n Node, dp image.Point) {
+	if n == nil {
 		return
 	}
 	n.Move(n.Bounds().Min.Add(dp))
-	for _,n := range n.Kid(){
+	for _, n := range n.Kid() {
 		Shift(n, dp)
 	}
 }
 
-func Move(n Node, sp image.Point){
-	if n == nil{
+func Move(n Node, sp image.Point) {
+	if n == nil {
 		return
 	}
 	n.Move(sp)
-	for _,n := range n.Kid(){
+	for _, n := range n.Kid() {
 		Move(n, sp)
 	}
 }
-func Handle(n Node, e interface{}){
-	if n == nil{
+func Handle(n Node, e interface{}) {
+	if n == nil {
 		return
 	}
-	switch n := n.(type){
+	switch n := n.(type) {
 	case Handler:
 		n.Handle(e)
 		return
 	}
 	for _, n := range n.Kid() {
-		switch n := n.(type){
+		switch n := n.(type) {
 		case Handler:
 			n.Handle(e)
 			return
-		}		
+		}
 	}
 }
 func (n *Di) Bounds() image.Rectangle {

@@ -1,9 +1,9 @@
 package main
 
 import (
+	draw2 "golang.org/x/image/draw"
 	"image"
 	"image/draw"
-	draw2 "golang.org/x/image/draw"
 	_ "image/png"
 	"os"
 )
@@ -58,7 +58,7 @@ func NewImageEX(path string, r image.Rectangle) (*Image, error) {
 	}
 	k := kern
 	kern = draw2.NearestNeighbor
-	pixel := Scale(img, image.Rect(0,0,32,32))
+	pixel := Scale(img, image.Rect(0, 0, 32, 32))
 	img2 := Scale(pixel, r)
 	kern = k
 	return &Image{
