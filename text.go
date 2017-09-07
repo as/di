@@ -51,7 +51,7 @@ func (t *Text) Handle(e interface{}) {
 			t.s.Delete(q0, q1)
 		}
 		if e.Rune != '\x08' {
-			q0 = t.s.Insert([]byte{byte(e.Rune)}, q0)
+			q0 = int64(t.s.Insert([]byte{byte(e.Rune)}, q0))
 			//t.s.Select(q1, q1)
 		}
 		//t.s.Refresh()
