@@ -18,7 +18,7 @@ type aux struct {
 }
 
 func NewText(a *aux, s string, dy int, sp, size, pad image.Point) *Text {
-	w := win.New(a.scr, font.NewTTF(gomono.TTF, dy), a.events, sp, size, pad, frame.Mono)
+	w := win.New(a.scr, a.events, sp, size, pad, font.NewTTF(gomono.TTF, dy), frame.Mono)
 	w.Insert([]byte(s), 0)
 	w.Upload()
 	return &Text{sp: sp, s: w}
