@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"image/draw"
 )
-import "github.com/as/frame/win"
+import "github.com/as/ui/win"
 
 type Node interface {
 	Bounds() image.Rectangle

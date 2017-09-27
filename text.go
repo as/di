@@ -5,7 +5,8 @@ import (
 
 	"github.com/as/frame"
 	"github.com/as/frame/font"
-	"github.com/as/frame/win"
+	"github.com/as/ui"
+	"github.com/as/ui/win"
 	"golang.org/x/exp/shiny/screen"
 	"golang.org/x/image/font/gofont/gomono"
 	"golang.org/x/mobile/event/key"
@@ -17,8 +18,8 @@ type aux struct {
 	events screen.Window
 }
 
-func NewText(a *aux, s string, dy int, sp, size, pad image.Point) *Text {
-	w := win.New(a.scr, a.events, sp, size, pad, font.NewTTF(gomono.TTF, dy), frame.Mono)
+func NewText(dev *ui.Dev, s string, dy int, sp, size, pad image.Point) *Text {
+	w := win.New(dev, sp, size, pad, font.NewTTF(gomono.TTF, dy), frame.Mono)
 	w.Insert([]byte(s), 0)
 	w.Upload()
 	return &Text{sp: sp, s: w}
