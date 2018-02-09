@@ -3,12 +3,11 @@ package main
 import (
 	"image"
 
+	"github.com/as/font"
 	"github.com/as/frame"
-	"github.com/as/frame/font"
 	"github.com/as/ui"
 	"github.com/as/ui/win"
 	"golang.org/x/exp/shiny/screen"
-	"golang.org/x/image/font/gofont/gomono"
 	"golang.org/x/mobile/event/key"
 	"golang.org/x/mobile/event/mouse"
 )
@@ -19,7 +18,7 @@ type aux struct {
 }
 
 func NewText(dev *ui.Dev, s string, dy int, sp, size, pad image.Point) *Text {
-	w := win.New(dev, sp, size, pad, font.NewTTF(gomono.TTF, dy), frame.Mono)
+	w := win.New(dev, sp, size, pad, font.NewFace(dy), frame.Mono)
 	w.Insert([]byte(s), 0)
 	w.Upload()
 	return &Text{sp: sp, s: w}

@@ -9,14 +9,13 @@ import (
 	"image/draw"
 	"sync"
 
-	"log"
-
-	"golang.org/x/exp/shiny/screen"
+	"github.com/as/shiny/screen"
 	"golang.org/x/mobile/event/key"
 	"golang.org/x/mobile/event/lifecycle"
 	"golang.org/x/mobile/event/mouse"
 	"golang.org/x/mobile/event/paint"
 	"golang.org/x/mobile/event/size"
+	"log"
 )
 
 var (
