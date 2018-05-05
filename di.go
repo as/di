@@ -1,20 +1,17 @@
 package main
 
 import (
-	"github.com/as/ui"
-	//"golang.org/x/image/font"
 	"fmt"
+	"github.com/as/ui"
 	"image"
 	"image/color"
 	"image/draw"
 	"sync"
 
 	"github.com/as/shiny/screen"
-	"golang.org/x/mobile/event/key"
 	"golang.org/x/mobile/event/lifecycle"
 	"golang.org/x/mobile/event/mouse"
 	"golang.org/x/mobile/event/paint"
-	"golang.org/x/mobile/event/size"
 	"log"
 )
 
@@ -78,7 +75,7 @@ func attachline(n Node, pt0, pt1 image.Point) {
 }
 
 var boxr = image.Rect(0, 0, 100, 50)
-var dev *ui.Dev
+var dev ui.Dev
 
 func node(name string, sp image.Point) *Rect {
 	r := boxr.Add(sp)
@@ -119,6 +116,20 @@ func drawControlPts(dst draw.Image, r image.Rectangle, src image.Image, sp image
 	controlPts(dst, r, image.Rect(0, 0, 5, 5), src, image.ZP)
 }
 
+var (
+	D     = screen.Dev
+	dirty = true
+)
+
+func repaint() {
+	if dirty {
+		select {
+		case D.Paint <- paint.Event{}:
+		default:
+		}
+	}
+}
+
 func main() {
 	var err error
 	dev, err = ui.Init(&screen.NewWindowOptions{winSize.X, winSize.Y, "di"})
@@ -129,10 +140,9 @@ func main() {
 	focused := false
 	focused = focused
 	//		repaint := true
-	buf := dev.NewBuffer(winSize)
+	buf, _ := dev.NewBuffer(winSize)
 	draw.Draw(buf.RGBA(), buf.Bounds(), Black, image.ZP, draw.Src)
 	rt := root(image.Pt(100, 100))
-	dirty := true
 
 	cnt := 25
 	RPs := []Node{
@@ -143,9 +153,9 @@ func main() {
 	}
 	nest1 := &Nest{
 		[]Node{
-		//	&Circ{bg: Black, a: 100, b: 100, c: image.Pt(50, 50)},
-		//	&Rect{bg: Yellow, Rectangle: image.Rect(0, 0, 64, 64)},
-		//	&Line{bg: Yellow, p0: image.Pt(0, 50), p1: image.Pt(100, 49)},
+			//	&Circ{bg: Black, a: 100, b: 100, c: image.Pt(50, 50)},
+			//	&Rect{bg: Yellow, Rectangle: image.Rect(0, 0, 64, 64)},
+			//	&Line{bg: Yellow, p0: image.Pt(0, 50), p1: image.Pt(100, 49)},
 		},
 	}
 	nest1.m = append(nest1.m, rt)
@@ -183,8 +193,8 @@ func main() {
 	}
 	var s0, s1 image.Point
 	for {
-		switch e := dev.Window().NextEvent().(type) {
-		case key.Event:
+		select {
+		case e := <-D.Key:
 			Handle(act, e)
 			if t, ok := act.(interface {
 				Dirty() bool
@@ -193,10 +203,7 @@ func main() {
 					dirty = true
 				}
 			}
-			if dirty {
-				win.Send(paint.Event{})
-			}
-		case mouse.Event:
+		case e := <-D.Mouse:
 			parsemouse(e)
 			switch {
 			case M.bt == 1<<3 || M.down == 1<<3:
@@ -236,12 +243,10 @@ func main() {
 				}
 				dirty = true
 			}
-			if dirty {
-				win.Send(paint.Event{})
-			}
+			repaint()
 			//repaint = true
-		case size.Event:
-		case paint.Event:
+		case <-D.Size:
+		case <-D.Paint:
 			if !dirty {
 				continue
 			}
@@ -266,7 +271,7 @@ func main() {
 			wg.Wait()
 			win.Publish()
 			dirty = false
-		case lifecycle.Event:
+		case e := <-D.Lifecycle:
 			if e.To == lifecycle.StageDead {
 				return
 			}

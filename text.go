@@ -17,8 +17,16 @@ type aux struct {
 	events screen.Window
 }
 
-func NewText(dev *ui.Dev, s string, dy int, sp, size, pad image.Point) *Text {
-	w := win.New(dev, sp, size, pad, font.NewFace(dy), frame.Mono)
+func NewText(dev ui.Dev, s string, dy int, sp, size, pad image.Point) *Text {
+	w := win.New(dev, &win.Config{
+		Facer: font.NewFace,
+		Frame: frame.Config{
+			Color: frame.Mono,
+		},
+		Margin: pad,
+	})
+	w.Move(sp)
+	w.Resize(size)
 	w.Insert([]byte(s), 0)
 	w.Upload()
 	return &Text{sp: sp, s: w}
